@@ -8,23 +8,19 @@ import re
 # Helper function to clean titles
 # ---------------------------
 def clean_title(title):
-    """
-    Lowercase the title, remove years in parentheses, collapse multiple spaces.
-    """
-    title = title.lower().strip()                    # lowercase + strip spaces
-    title = re.sub(r"\(\d{4}\)", "", title)         # remove year like (1995)
-    title = re.sub(r"\s+", " ", title)             # collapse multiple spaces into one
+    title = str(title).lower().strip()                   # lowercase + strip spaces
+    title = re.sub(r"\(\d{4}\)", "", title)             # remove year like (1995)
+    title = re.sub(r"\s+", " ", title)                  # collapse multiple spaces
     return title
 
 # ---------------------------
 # Load dataset
 # ---------------------------
-# Make sure 'movies.csv' is in the same folder as app.py
-movies = pd.read_csv("movies.csv")
+movies = pd.read_csv("movies.csv", encoding='utf-8-sig')
 movies['title'] = movies['title'].fillna('')
 
 # ---------------------------
-# Preprocess titles
+# Clean titles
 # ---------------------------
 movies['clean_title'] = movies['title'].apply(clean_title)
 
@@ -35,12 +31,12 @@ tfidf = TfidfVectorizer(stop_words='english')
 tfidf_matrix = tfidf.fit_transform(movies['clean_title'])
 
 # ---------------------------
-# Compute cosine similarity matrix
+# Compute cosine similarity
 # ---------------------------
 cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
 
 # ---------------------------
-# Create indices for fast lookup
+# Create indices for lookup
 # ---------------------------
 indices = pd.Series(movies.index, index=movies['clean_title'])
 
@@ -48,18 +44,17 @@ indices = pd.Series(movies.index, index=movies['clean_title'])
 # Recommendation function
 # ---------------------------
 def recommend_movies(user_input, cosine_sim=cosine_sim):
-    user_input = clean_title(user_input)  # clean user input
-    
+    user_input = clean_title(user_input)
+
     if user_input not in indices:
-        # Optional: return close matches using fuzzy matching if not found
         return ["Movie not found"]
-    
+
     idx = indices[user_input]
     sim_scores = list(enumerate(cosine_sim[idx]))
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
     sim_scores = sim_scores[1:6]  # top 5 recommendations
     movie_indices = [i[0] for i in sim_scores]
-    
+
     return movies['title'].iloc[movie_indices].tolist()
 
 # ---------------------------
