@@ -8,6 +8,9 @@ import re
 # Helper function to clean titles
 # ---------------------------
 def clean_title(title):
+    """
+    Lowercase the title, remove years in parentheses, collapse multiple spaces.
+    """
     title = str(title).lower().strip()                   # lowercase + strip spaces
     title = re.sub(r"\(\d{4}\)", "", title)             # remove year like (1995)
     title = re.sub(r"\s+", " ", title)                  # collapse multiple spaces
@@ -25,6 +28,11 @@ movies['title'] = movies['title'].fillna('')
 movies['clean_title'] = movies['title'].apply(clean_title)
 
 # ---------------------------
+# Remove any hidden characters from clean_title
+# ---------------------------
+movies['clean_title'] = movies['clean_title'].str.encode('ascii', errors='ignore').str.decode('utf-8')
+
+# ---------------------------
 # TF-IDF Vectorization
 # ---------------------------
 tfidf = TfidfVectorizer(stop_words='english')
@@ -38,13 +46,14 @@ cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
 # ---------------------------
 # Create indices for lookup
 # ---------------------------
-indices = pd.Series(movies.index, index=movies['clean_title'])
+indices = pd.Series(movies.index.values, index=movies['clean_title']).to_dict()
 
 # ---------------------------
 # Recommendation function
 # ---------------------------
 def recommend_movies(user_input, cosine_sim=cosine_sim):
     user_input = clean_title(user_input)
+    user_input = user_input.encode('ascii', errors='ignore').decode('utf-8')  # remove hidden chars
 
     if user_input not in indices:
         return ["Movie not found"]
