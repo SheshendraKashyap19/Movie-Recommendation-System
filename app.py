@@ -17,16 +17,21 @@ cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
 
 # Recommendation function
 def recommend_movies(title, cosine_sim=cosine_sim):
-    title = title.lower()
-    indices = pd.Series(movies.index, index=movies['title'].str.lower())
+    # Make indices lowercase and strip spaces
+    indices = pd.Series(movies.index, index=movies['title'].str.lower().str.strip())
+    # Process user input
+    title = title.lower().strip()
+    
     if title not in indices:
         return ["Movie not found"]
+    
     idx = indices[title]
     sim_scores = list(enumerate(cosine_sim[idx]))
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
     sim_scores = sim_scores[1:6]  # Top 5
     movie_indices = [i[0] for i in sim_scores]
     return movies['title'].iloc[movie_indices].tolist()
+
 
 # Streamlit UI
 st.title("🎬 Movie Recommendation System")
