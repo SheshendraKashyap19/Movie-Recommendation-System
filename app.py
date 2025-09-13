@@ -1,39 +1,61 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import re
 
+# ---------------------------
+# Helper function to clean titles
+# ---------------------------
+def clean_title(title):
+    title = title.lower().strip()                   # lowercase + strip spaces
+    title = re.sub(r"\(\d{4}\)", "", title)        # remove year
+    title = re.sub(r"\s+", " ", title)            # collapse multiple spaces
+    return title
+
+# ---------------------------
 # Load dataset
-movies = pd.read_csv("movies.csv")
+# ---------------------------
+movies = pd.read_csv("ml-latest-small/movies.csv")
 movies['title'] = movies['title'].fillna('')
 
-# TF-IDF vectorization
+# Create a clean_title column
+movies['clean_title'] = movies['title'].apply(clean_title)
+
+# ---------------------------
+# TF-IDF Vectorization
+# ---------------------------
 tfidf = TfidfVectorizer(stop_words='english')
-tfidf_matrix = tfidf.fit_transform(movies['title'])
+tfidf_matrix = tfidf.fit_transform(movies['clean_title'])
 
 # Compute similarity matrix
 cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
 
+# ---------------------------
+# Create indices for recommendation lookup
+# ---------------------------
+indices = pd.Series(movies.index, index=movies['clean_title'])
+
+# ---------------------------
 # Recommendation function
-def recommend_movies(title, cosine_sim=cosine_sim):
-    # Make indices lowercase and strip spaces
-    indices = pd.Series(movies.index, index=movies['title'].str.lower().str.strip())
-    # Process user input
-    title = title.lower().strip()
+# ---------------------------
+def recommend_movies(user_input, cosine_sim=cosine_sim):
+    user_input = clean_title(user_input)
     
-    if title not in indices:
+    if user_input not in indices:
         return ["Movie not found"]
     
-    idx = indices[title]
+    idx = indices[user_input]
     sim_scores = list(enumerate(cosine_sim[idx]))
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    sim_scores = sim_scores[1:6]  # Top 5
+    sim_scores = sim_scores[1:6]  # top 5 recommendations
     movie_indices = [i[0] for i in sim_scores]
+    
     return movies['title'].iloc[movie_indices].tolist()
 
-
+# ---------------------------
 # Streamlit UI
+# ---------------------------
 st.title("🎬 Movie Recommendation System")
 st.write("Enter a movie name to get top 5 recommendations.")
 
