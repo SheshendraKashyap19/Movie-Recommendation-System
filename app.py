@@ -16,7 +16,7 @@ def clean_title(title):
 # ---------------------------
 # Load dataset
 # ---------------------------
-movies = pd.read_csv("ml-latest-small/movies.csv")
+movies = pd.read_csv("movies.csv")
 movies['title'] = movies['title'].fillna('')
 
 # Create a clean_title column
